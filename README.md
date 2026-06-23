@@ -187,8 +187,7 @@ java -cp out astar.app.Main
 git clone https://github.com/PiupiuTenshi/Astar.git
 cd Astar
 New-Item -ItemType Directory -Force out
-Get-ChildItem -Recurse src -Filter *.java | ForEach-Object { $_.FullName } > sources.txt
-javac -encoding UTF-8 -d out @sources.txt
+javac -encoding UTF-8 -d out -sourcepath src src\astar\app\Main.java
 java -cp out astar.app.Main
 ```
 

@@ -52,11 +52,21 @@ public class TileMapPanel extends JPanel {
 
         addMouseWheelListener(e -> {
             int notches = e.getWheelRotation();
+            int newZoom = Math.max(10, Math.min(18, zoom - notches));
+            if (newZoom == zoom) return;
+
             Point p = e.getPoint();
-            LatLng ll = screenToLatLng(p.x, p.y);
-            zoom = Math.max(10, Math.min(18, zoom - notches));
-            centerLat = ll.lat;
-            centerLng = ll.lng;
+            LatLng ll = screenToLatLng(p.x, p.y); // Must be called BEFORE changing zoom!
+
+            zoom = newZoom;
+            double[] targetTile = latLngToTileXY(ll.lat, ll.lng, zoom);
+            double cx = targetTile[0] - (p.x - getWidth() / 2.0) / TILE_SIZE;
+            double cy = targetTile[1] - (p.y - getHeight() / 2.0) / TILE_SIZE;
+
+            double n = Math.pow(2, zoom);
+            centerLng = cx / n * 360.0 - 180.0;
+            centerLat = Math.toDegrees(Math.atan(Math.sinh(Math.PI * (1 - 2 * cy / n))));
+
             tileCache.clear();
             repaint();
         });
@@ -83,9 +93,9 @@ public class TileMapPanel extends JPanel {
                 if (dragStart != null) {
                     int dx = e.getX() - dragStart.x;
                     int dy = e.getY() - dragStart.y;
-                    double scale = 360.0 / (TILE_SIZE * Math.pow(2, zoom));
-                    centerLng = dragLng - dx * scale;
-                    double mercY = GeoMath.lngLatToMercY(dragLat) + dy * scale;
+                    double n = Math.pow(2, zoom);
+                    centerLng = dragLng - dx * 360.0 / (TILE_SIZE * n);
+                    double mercY = GeoMath.lngLatToMercY(dragLat) + dy * 2 * Math.PI / (TILE_SIZE * n);
                     centerLat = GeoMath.mercYToLat(mercY);
                     repaint();
                 }
@@ -237,8 +247,8 @@ public class TileMapPanel extends JPanel {
         double offsetX = (centerTile[0] - centerTileX) * TILE_SIZE;
         double offsetY = (centerTile[1] - centerTileY) * TILE_SIZE;
 
-        int startX = (int) Math.floor((w / 2.0 - offsetX) / TILE_SIZE);
-        int startY = (int) Math.floor((h / 2.0 - offsetY) / TILE_SIZE);
+        int startX = (int) Math.floor(-(w / 2.0 - offsetX) / TILE_SIZE);
+        int startY = (int) Math.floor(-(h / 2.0 - offsetY) / TILE_SIZE);
         int tilesX = (int) Math.ceil((double) w / TILE_SIZE) + 2;
         int tilesY = (int) Math.ceil((double) h / TILE_SIZE) + 2;
 
